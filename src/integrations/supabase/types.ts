@@ -14,7 +14,117 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      profiles: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      reports: {
+        Row: {
+          created_at: string
+          description: string
+          hazard_type: Database["public"]["Enums"]["hazard_type"]
+          id: string
+          latitude: number
+          location_name: string | null
+          longitude: number
+          media_url: string | null
+          status: Database["public"]["Enums"]["report_status"]
+          updated_at: string
+          user_id: string
+          verified_at: string | null
+          verified_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          description: string
+          hazard_type: Database["public"]["Enums"]["hazard_type"]
+          id?: string
+          latitude: number
+          location_name?: string | null
+          longitude: number
+          media_url?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+          user_id: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          hazard_type?: Database["public"]["Enums"]["hazard_type"]
+          id?: string
+          latitude?: number
+          location_name?: string | null
+          longitude?: number
+          media_url?: string | null
+          status?: Database["public"]["Enums"]["report_status"]
+          updated_at?: string
+          user_id?: string
+          verified_at?: string | null
+          verified_by?: string | null
+        }
+        Relationships: []
+      }
+      social_media_posts: {
+        Row: {
+          content: string
+          created_at: string
+          hazard_type: Database["public"]["Enums"]["hazard_type"] | null
+          id: string
+          latitude: number | null
+          location_name: string | null
+          longitude: number | null
+          sentiment: Database["public"]["Enums"]["sentiment_type"]
+          source: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          hazard_type?: Database["public"]["Enums"]["hazard_type"] | null
+          id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          sentiment?: Database["public"]["Enums"]["sentiment_type"]
+          source: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          hazard_type?: Database["public"]["Enums"]["hazard_type"] | null
+          id?: string
+          latitude?: number | null
+          location_name?: string | null
+          longitude?: number | null
+          sentiment?: Database["public"]["Enums"]["sentiment_type"]
+          source?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
@@ -23,7 +133,15 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      hazard_type:
+        | "tsunami"
+        | "flood"
+        | "high_waves"
+        | "storm_surge"
+        | "abnormal_sea_behavior"
+      report_status: "pending" | "verified" | "rejected"
+      sentiment_type: "positive" | "negative" | "neutral"
+      user_role: "citizen" | "analyst" | "disaster_manager"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +268,17 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      hazard_type: [
+        "tsunami",
+        "flood",
+        "high_waves",
+        "storm_surge",
+        "abnormal_sea_behavior",
+      ],
+      report_status: ["pending", "verified", "rejected"],
+      sentiment_type: ["positive", "negative", "neutral"],
+      user_role: ["citizen", "analyst", "disaster_manager"],
+    },
   },
 } as const
