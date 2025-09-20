@@ -1,6 +1,7 @@
 import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { useAuth } from '@/hooks/useAuth';
+import { ThemeToggle } from '@/components/ThemeToggle';
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -9,7 +10,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { LogOut, User, Settings } from 'lucide-react';
+import { LogOut, User, Settings, Bell } from 'lucide-react';
 
 export function TopNav() {
   const { profile, signOut } = useAuth();
@@ -33,19 +34,22 @@ export function TopNav() {
         <SidebarTrigger className="h-8 w-8" />
         <div className="hidden md:block">
           <h1 className="text-lg font-semibold text-foreground">
-            Ocean Hazard Monitoring System
+            Ocean Guardian Platform
           </h1>
         </div>
       </div>
 
       <div className="flex items-center space-x-4">
-        {/* Notification Badge (placeholder for future implementation) */}
-        <div className="relative">
-          <div className="h-2 w-2 bg-destructive rounded-full absolute -top-1 -right-1"></div>
-          <div className="h-8 w-8 bg-muted rounded-full flex items-center justify-center">
-            <span className="text-xs font-medium">3</span>
-          </div>
-        </div>
+        {/* Notification Badge */}
+        <Button variant="ghost" size="sm" className="relative">
+          <Bell className="h-4 w-4" />
+          <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-[10px] text-white flex items-center justify-center">
+            3
+          </span>
+        </Button>
+
+        {/* Theme Toggle */}
+        <ThemeToggle />
 
         {/* User Menu */}
         <DropdownMenu>

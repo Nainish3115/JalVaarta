@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Filter, Clock, User, CheckCircle, AlertTriangle } from 'lucide-react';
+import MapComponent from '@/components/MapComponent';
 
 interface Report {
   id: string;
@@ -15,7 +16,7 @@ interface Report {
   location_name: string;
   status: string;
   created_at: string;
-  media_url: string;
+  media_url?: string;
   profiles: {
     name: string;
   } | null;
@@ -251,18 +252,18 @@ const MapView = () => {
         {/* Map Placeholder */}
         <Card className="lg:col-span-1">
           <CardHeader>
-            <CardTitle>Map View</CardTitle>
-            <CardDescription>Interactive map showing hazard locations</CardDescription>
+            <CardTitle>Interactive Map</CardTitle>
+            <CardDescription>Real-time hazard locations and status</CardDescription>
           </CardHeader>
-          <CardContent>
-            <div className="h-96 bg-muted rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="h-12 w-12 text-muted-foreground mx-auto mb-2" />
-                <p className="text-muted-foreground">Interactive map will be available soon</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Showing {filteredReports.length} reports
-                </p>
-              </div>
+          <CardContent className="p-0">
+            <div className="h-96">
+              <MapComponent 
+                reports={filteredReports}
+                selectedReport={selectedReport}
+                onReportSelect={setSelectedReport}
+                center={[25.7617, -80.1918]} // Miami Beach
+                zoom={6}
+              />
             </div>
           </CardContent>
         </Card>
