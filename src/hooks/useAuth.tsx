@@ -77,11 +77,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
       
       if (error) {
-        toast({
-          variant: "destructive",
-          title: "Sign In Failed",
-          description: error.message,
-        });
+        if (error.message.includes('Email not confirmed')) {
+          toast({
+            variant: "destructive",
+            title: "Email Not Verified",
+            description: "Please check your email and click the confirmation link to verify your account. If you can't find the email, check your spam folder.",
+          });
+        } else if (error.message.includes('Invalid login credentials')) {
+          toast({
+            variant: "destructive",
+            title: "Invalid Credentials",
+            description: "The email or password you entered is incorrect. Please try again.",
+          });
+        } else {
+          toast({
+            variant: "destructive",
+            title: "Sign In Failed",
+            description: error.message,
+          });
+        }
       } else {
         toast({
           title: "Welcome back!",
