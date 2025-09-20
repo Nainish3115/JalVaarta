@@ -71,18 +71,28 @@ const MapView = () => {
 
   const fetchReports = async () => {
     try {
-      const { data, error } = await supabase
+      // First get all reports
+      const { data: reportsData, error: reportsError } = await supabase
         .from('reports')
-        .select(`
-          *,
-          profiles (
-            name
-          )
-        `)
+        .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
-      setReports(data || []);
+      if (reportsError) throw reportsError;
+
+      // Then get all profiles
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('profiles')
+        .select('user_id, name');
+
+      if (profilesError) throw profilesError;
+
+      // Manually join the data
+      const reportsWithProfiles = (reportsData || []).map(report => ({
+        ...report,
+        profiles: profilesData?.find(profile => profile.user_id === report.user_id) || null
+      }));
+
+      setReports(reportsWithProfiles);
     } catch (error) {
       console.error('Error fetching reports:', error);
     } finally {
