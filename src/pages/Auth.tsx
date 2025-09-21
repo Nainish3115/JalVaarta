@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { Waves, Shield, AlertTriangle } from 'lucide-react';
+import { Waves, Shield, AlertTriangle, Users, TrendingUp } from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const Auth = () => {
   const { user, signIn, signUp, loading } = useAuth();
@@ -48,8 +49,9 @@ const Auth = () => {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('name') as string;
+    const role = formData.get('role') as string;
     
-    await signUp(email, password, name);
+    await signUp(email, password, name, role);
     setIsSubmitting(false);
   };
 
@@ -150,6 +152,43 @@ const Auth = () => {
                       required
                       disabled={isSubmitting}
                     />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-role">Account Type</Label>
+                    <Select name="role" defaultValue="citizen" disabled={isSubmitting}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select your role" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="citizen">
+                          <div className="flex items-center space-x-2">
+                            <Users className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">Citizen Reporter</div>
+                              <div className="text-xs text-muted-foreground">Report ocean hazards in your area</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="analyst">
+                          <div className="flex items-center space-x-2">
+                            <TrendingUp className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">Data Analyst</div>
+                              <div className="text-xs text-muted-foreground">Analyze hazard data and verify reports</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                        <SelectItem value="disaster_manager">
+                          <div className="flex items-center space-x-2">
+                            <Shield className="h-4 w-4" />
+                            <div>
+                              <div className="font-medium">Disaster Manager</div>
+                              <div className="text-xs text-muted-foreground">Coordinate emergency responses</div>
+                            </div>
+                          </div>
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="signup-password">Password</Label>

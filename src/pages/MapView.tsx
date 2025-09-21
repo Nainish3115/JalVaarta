@@ -5,7 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Filter, Clock, User, CheckCircle, AlertTriangle } from 'lucide-react';
-import MapComponent from '@/components/MapComponent';
+import MapboxMap from '@/components/MapboxMap';
 
 interface Report {
   id: string;
@@ -257,12 +257,12 @@ const MapView = () => {
           </CardHeader>
           <CardContent className="p-0">
             <div className="h-96">
-              <MapComponent 
+              <MapboxMap 
                 reports={filteredReports}
                 selectedReport={selectedReport}
                 onReportSelect={setSelectedReport}
-                center={[25.7617, -80.1918]} // Miami Beach
-                zoom={6}
+                center={[77.2090, 28.6139]} // New Delhi coordinates for India
+                zoom={5}
               />
             </div>
           </CardContent>

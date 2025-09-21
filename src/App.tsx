@@ -12,7 +12,8 @@ import ReportHazard from "./pages/ReportHazard";
 import MapView from "./pages/MapView";
 import SocialMedia from "./pages/SocialMedia";
 import AdminPanel from "./pages/AdminPanel";
-import NotFound from "./pages/NotFound";
+import Profile from "./pages/Profile";
+import Settings from "./pages/Settings";
 
 const queryClient = new QueryClient();
 
@@ -54,6 +55,8 @@ const App = () => (
                 <Route path="map" element={<MapView />} />
                 <Route path="social" element={<SocialMedia />} />
                 <Route path="admin" element={<AdminPanel />} />
+                <Route path="profile" element={<Profile />} />
+                <Route path="settings" element={<Settings />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

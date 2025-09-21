@@ -17,7 +17,7 @@ interface AuthContextType {
   profile: Profile | null;
   session: Session | null;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string, role?: string) => Promise<{ error: any }>;
   signOut: () => Promise<{ error: any }>;
   loading: boolean;
 }
@@ -114,7 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, role: string = 'citizen') => {
     try {
       const redirectUrl = `${window.location.origin}/`;
       
@@ -125,6 +125,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           emailRedirectTo: redirectUrl,
           data: {
             name: name,
+            role: role,
           },
         },
       });

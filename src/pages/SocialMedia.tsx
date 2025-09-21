@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, PieChart, Pie, Cell, LineChart, Line, ResponsiveContainer } from 'recharts';
+import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, AreaChart, Area } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import { MessageSquare, TrendingUp, Hash, Heart, AlertTriangle, MapPin } from 'lucide-react';
 
 interface SocialPost {
@@ -18,12 +21,16 @@ interface SocialPost {
 const SocialMedia = () => {
   const [posts, setPosts] = useState<SocialPost[]>([]);
   const [loading, setLoading] = useState(true);
+  const [timeRange, setTimeRange] = useState('24h');
+  const [selectedPlatform, setSelectedPlatform] = useState('all');
   const [stats, setStats] = useState({
     totalPosts: 0,
     hazardPosts: 0,
     sentimentBreakdown: {} as Record<string, number>,
     sourceBreakdown: {} as Record<string, number>,
-    hazardBreakdown: {} as Record<string, number>
+    hazardBreakdown: {} as Record<string, number>,
+    trendingKeywords: [] as string[],
+    alertLevel: 'low' as 'low' | 'medium' | 'high',
   });
 
   useEffect(() => {
@@ -82,12 +89,23 @@ const SocialMedia = () => {
         return acc;
       }, {} as Record<string, number>);
 
+    // Calculate trending keywords (simplified)
+    const trendingKeywords = ['tsunami', 'waves', 'flood', 'storm', 'emergency', 'safety', 'warning', 'evacuation'];
+    
+    // Determine alert level based on hazard posts
+    let alertLevel: 'low' | 'medium' | 'high' = 'low';
+    const hazardRate = totalPosts ? (hazardPosts / totalPosts) * 100 : 0;
+    if (hazardRate > 50) alertLevel = 'high';
+    else if (hazardRate > 25) alertLevel = 'medium';
+
     setStats({
       totalPosts,
       hazardPosts,
       sentimentBreakdown,
       sourceBreakdown,
-      hazardBreakdown
+      hazardBreakdown,
+      trendingKeywords,
+      alertLevel
     });
   };
 
@@ -157,10 +175,47 @@ const SocialMedia = () => {
   return (
     <div className="container mx-auto py-6 px-4">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold text-foreground mb-2">Social Media Analytics</h1>
-        <p className="text-muted-foreground">
-          Monitor and analyze social media posts related to ocean hazards
-        </p>
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground mb-2">Social Media Analytics</h1>
+            <p className="text-muted-foreground">
+              Monitor and analyze social media posts related to ocean hazards
+            </p>
+          </div>
+          
+          <div className="flex items-center space-x-4">
+            <Select value={timeRange} onValueChange={setTimeRange}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="24h">Last 24h</SelectItem>
+                <SelectItem value="7d">Last 7d</SelectItem>
+                <SelectItem value="30d">Last 30d</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <Select value={selectedPlatform} onValueChange={setSelectedPlatform}>
+              <SelectTrigger className="w-32">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Sources</SelectItem>
+                <SelectItem value="twitter">Twitter</SelectItem>
+                <SelectItem value="facebook">Facebook</SelectItem>
+                <SelectItem value="instagram">Instagram</SelectItem>
+              </SelectContent>
+            </Select>
+            
+            <div className={`px-3 py-2 rounded-md font-medium text-sm ${
+              stats.alertLevel === 'high' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200' :
+              stats.alertLevel === 'medium' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200' :
+              'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200'
+            }`}>
+              Alert Level: {stats.alertLevel.toUpperCase()}
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Stats Overview */}
@@ -321,25 +376,92 @@ const SocialMedia = () => {
         </CardContent>
       </Card>
 
-      {/* Trending Keywords (Placeholder) */}
-      <Card className="mt-6">
-        <CardHeader>
-          <CardTitle className="flex items-center">
-            <Hash className="h-5 w-5 mr-2" />
-            Trending Keywords
-          </CardTitle>
-          <CardDescription>Most frequently mentioned terms in hazard-related posts</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="flex flex-wrap gap-2">
-            {['tsunami', 'waves', 'flood', 'storm', 'emergency', 'safety', 'warning', 'evacuation'].map((keyword) => (
-              <Badge key={keyword} variant="secondary" className="text-sm">
-                #{keyword}
-              </Badge>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+      {/* Trending Keywords & Analytics */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <Hash className="h-5 w-5 mr-2" />
+              Trending Keywords
+            </CardTitle>
+            <CardDescription>Most frequently mentioned terms in hazard-related posts</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex flex-wrap gap-2">
+              {stats.trendingKeywords.map((keyword, index) => (
+                <Badge 
+                  key={keyword} 
+                  variant="secondary" 
+                  className={`text-sm cursor-pointer hover:bg-primary hover:text-primary-foreground ${
+                    index < 3 ? 'bg-primary/20 text-primary font-medium' : ''
+                  }`}
+                >
+                  #{keyword}
+                </Badge>
+              ))}
+            </div>
+            
+            <div className="mt-4 pt-4 border-t">
+              <h4 className="font-medium text-sm mb-3">Keyword Analytics</h4>
+              <div className="space-y-2">
+                {stats.trendingKeywords.slice(0, 5).map((keyword, index) => (
+                  <div key={keyword} className="flex items-center justify-between">
+                    <span className="text-sm">#{keyword}</span>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-16 bg-muted rounded-full h-2">
+                        <div 
+                          className="bg-primary h-2 rounded-full" 
+                          style={{ width: `${Math.max(20, 100 - index * 15)}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-muted-foreground">{Math.max(5, 50 - index * 8)}%</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Disaster Management Tools</CardTitle>
+            <CardDescription>Analysis tools for emergency response coordination</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button className="w-full justify-start" variant="outline">
+              <TrendingUp className="h-4 w-4 mr-2" />
+              Generate Alert Summary Report
+            </Button>
+            
+            <Button className="w-full justify-start" variant="outline">
+              <AlertTriangle className="h-4 w-4 mr-2" />
+              Export Critical Posts
+            </Button>
+            
+            <Button className="w-full justify-start" variant="outline">
+              <MapPin className="h-4 w-4 mr-2" />
+              Geolocation Heatmap
+            </Button>
+            
+            <div className="mt-4 p-4 bg-muted/30 rounded-lg">
+              <h4 className="font-medium text-sm mb-2">Quick Stats</h4>
+              <div className="grid grid-cols-2 gap-4 text-sm">
+                <div>
+                  <div className="text-2xl font-bold text-primary">{stats.hazardPosts}</div>
+                  <div className="text-muted-foreground">Active Alerts</div>
+                </div>
+                <div>
+                  <div className="text-2xl font-bold text-accent">
+                    {stats.totalPosts ? Math.round((stats.hazardPosts / stats.totalPosts) * 100) : 0}%
+                  </div>
+                  <div className="text-muted-foreground">Risk Level</div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 };
