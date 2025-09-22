@@ -12,6 +12,7 @@ import ReportHazard from "./pages/ReportHazard";
 import MapView from "./pages/MapView";
 import SocialMedia from "./pages/SocialMedia";
 import AdminPanel from "./pages/AdminPanel";
+import DisasterManagement from "./pages/DisasterManagement";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound"; // 404 page component
@@ -55,6 +56,7 @@ const App = () => (
                 <Route path="report" element={<ReportHazard />} />
                 <Route path="map" element={<MapView />} />
                 <Route path="social" element={<SocialMedia />} />
+                <Route path="disaster" element={<DisasterManagement />} />
                 <Route path="admin" element={<AdminPanel />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />

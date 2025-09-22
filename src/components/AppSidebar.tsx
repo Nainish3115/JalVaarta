@@ -27,6 +27,7 @@ const navigationItems = [
   { title: 'Report Hazard', url: '/report', icon: AlertTriangle, roles: ['citizen', 'analyst', 'disaster_manager'] },
   { title: 'Map View', url: '/map', icon: MapPin, roles: ['citizen', 'analyst', 'disaster_manager'] },
   { title: 'Social Media', url: '/social', icon: Database, roles: ['analyst', 'disaster_manager'] },
+  { title: 'Disaster Center', url: '/disaster', icon: Shield, roles: ['disaster_manager', 'analyst'] },
   { title: 'Admin Panel', url: '/admin', icon: Shield, roles: ['analyst', 'disaster_manager'] },
 ];
 
