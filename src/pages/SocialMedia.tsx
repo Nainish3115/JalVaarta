@@ -5,7 +5,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, LineChart, Line, AreaChart, Area } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { MessageSquare, TrendingUp, Hash, Heart, AlertTriangle, MapPin } from 'lucide-react';
 
 interface SocialPost {

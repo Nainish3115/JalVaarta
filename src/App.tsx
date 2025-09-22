@@ -14,6 +14,7 @@ import SocialMedia from "./pages/SocialMedia";
 import AdminPanel from "./pages/AdminPanel";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
+import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
