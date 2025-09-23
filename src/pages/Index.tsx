@@ -241,22 +241,20 @@ const Index = () => {
               </Link>
             </Button>
 
+            <Button asChild variant="outline" className="w-full justify-start">
+              <Link to="/social">
+                <TrendingUp className="h-4 w-4 mr-2" />
+                Social Media Analytics
+              </Link>
+            </Button>
+
             {(profile?.role === 'analyst' || profile?.role === 'disaster_manager') && (
-              <>
-                <Button asChild variant="outline" className="w-full justify-start">
-                  <Link to="/social">
-                    <TrendingUp className="h-4 w-4 mr-2" />
-                    Social Media Analytics
-                  </Link>
-                </Button>
-                
-                <Button asChild variant="outline" className="w-full justify-start">
-                  <Link to="/admin">
-                    <Shield className="h-4 w-4 mr-2" />
-                    Admin Panel
-                  </Link>
-                </Button>
-              </>
+              <Button asChild variant="outline" className="w-full justify-start">
+                <Link to="/admin">
+                  <Shield className="h-4 w-4 mr-2" />
+                  Admin Panel
+                </Link>
+              </Button>
             )}
           </CardContent>
         </Card>

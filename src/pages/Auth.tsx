@@ -49,7 +49,10 @@ const Auth = () => {
     const email = formData.get('email') as string;
     const password = formData.get('password') as string;
     const name = formData.get('name') as string;
-    const role = formData.get('role') as string;
+    
+    // Get role from select element
+    const selectElement = e.currentTarget.querySelector('select[name="role"]') as HTMLSelectElement;
+    const role = selectElement?.value || 'citizen';
     
     await signUp(email, password, name, role);
     setIsSubmitting(false);
