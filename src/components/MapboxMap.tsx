@@ -36,6 +36,12 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
   const mapContainer = useRef<HTMLDivElement>(null);
   const map = useRef<mapboxgl.Map | null>(null);
   const [mapboxToken, setMapboxToken] = useState<string>('');
+  const [alertZones, setAlertZones] = useState<Array<{
+    center: [number, number];
+    radius: number;
+    reportCount: number;
+    reports: Report[];
+  }>>([]);
 
   useEffect(() => {
     // Get Mapbox token from Supabase secrets
@@ -57,6 +63,67 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
 
     getMapboxToken();
   }, []);
+
+  // Calculate alert zones from verified reports
+  useEffect(() => {
+    const calculateAlertZones = () => {
+      const verifiedReports = reports.filter(r => r.status === 'verified');
+      const zones: Array<{
+        center: [number, number];
+        radius: number;
+        reportCount: number;
+        reports: Report[];
+      }> = [];
+
+      // Group reports within 50km radius
+      const RADIUS_KM = 50;
+      const processedReports = new Set<string>();
+
+      verifiedReports.forEach(report => {
+        if (processedReports.has(report.id)) return;
+
+        const nearbyReports = verifiedReports.filter(otherReport => {
+          if (processedReports.has(otherReport.id) || report.id === otherReport.id) return false;
+          
+          // Calculate distance using Haversine formula
+          const lat1 = report.latitude * Math.PI / 180;
+          const lat2 = otherReport.latitude * Math.PI / 180;
+          const deltaLat = (otherReport.latitude - report.latitude) * Math.PI / 180;
+          const deltaLng = (otherReport.longitude - report.longitude) * Math.PI / 180;
+
+          const a = Math.sin(deltaLat/2) * Math.sin(deltaLat/2) +
+                   Math.cos(lat1) * Math.cos(lat2) *
+                   Math.sin(deltaLng/2) * Math.sin(deltaLng/2);
+          const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+          const distance = 6371 * c; // Earth's radius in km
+
+          return distance <= RADIUS_KM;
+        });
+
+        if (nearbyReports.length >= 1) { // 2+ reports including the current one
+          const allReports = [report, ...nearbyReports];
+          
+          // Calculate center point
+          const centerLat = allReports.reduce((sum, r) => sum + r.latitude, 0) / allReports.length;
+          const centerLng = allReports.reduce((sum, r) => sum + r.longitude, 0) / allReports.length;
+
+          zones.push({
+            center: [centerLng, centerLat],
+            radius: RADIUS_KM * 1000, // Convert to meters for map
+            reportCount: allReports.length,
+            reports: allReports
+          });
+
+          // Mark all reports in this zone as processed
+          allReports.forEach(r => processedReports.add(r.id));
+        }
+      });
+
+      setAlertZones(zones);
+    };
+
+    calculateAlertZones();
+  }, [reports]);
 
   useEffect(() => {
     if (!mapContainer.current || !mapboxToken) return;
@@ -230,6 +297,63 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
           .setLngLat([report.longitude, report.latitude])
           .addTo(map.current!);
       });
+
+      // Add alert zones
+      alertZones.forEach((zone, index) => {
+        // Add alert zone source
+        map.current!.addSource(`alert-zone-${index}`, {
+          type: 'geojson',
+          data: {
+            type: 'Feature',
+            properties: {
+              reportCount: zone.reportCount
+            },
+            geometry: {
+              type: 'Point',
+              coordinates: zone.center
+            }
+          }
+        });
+
+        // Add alert zone circle
+        map.current!.addLayer({
+          id: `alert-zone-circle-${index}`,
+          type: 'circle',
+          source: `alert-zone-${index}`,
+          paint: {
+            'circle-radius': {
+              stops: [
+                [0, 0],
+                [20, zone.radius / 500] // Adjust scale for visibility
+              ]
+            },
+            'circle-color': '#ff4444',
+            'circle-opacity': 0.2,
+            'circle-stroke-width': 2,
+            'circle-stroke-color': '#ff4444',
+            'circle-stroke-opacity': 0.8
+          }
+        });
+
+        // Add alert zone label
+        map.current!.addLayer({
+          id: `alert-zone-label-${index}`,
+          type: 'symbol',
+          source: `alert-zone-${index}`,
+          layout: {
+            'text-field': `⚠️ ALERT ZONE\n${zone.reportCount} verified reports`,
+            'text-font': ['Open Sans Bold', 'Arial Unicode MS Bold'],
+            'text-size': 12,
+            'text-anchor': 'center',
+            'text-offset': [0, 0]
+          },
+          paint: {
+            'text-color': '#ff4444',
+            'text-halo-color': '#ffffff',
+            'text-halo-width': 1
+          }
+        });
+      });
     });
 
     // Cleanup
@@ -320,6 +444,29 @@ const MapboxMap: React.FC<MapboxMapProps> = ({
             </g>
           </svg>
         </div>
+
+        {/* Alert zones for demo */}
+        {alertZones.map((zone, index) => (
+          <div
+            key={`alert-zone-${index}`}
+            className="absolute rounded-full border-4 border-red-500 bg-red-500/20 animate-pulse pointer-events-none"
+            style={{
+              top: '50%',
+              left: '50%',
+              width: '120px',
+              height: '120px',
+              transform: 'translate(-50%, -50%)'
+            }}
+          >
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="bg-red-500 text-white text-xs px-2 py-1 rounded font-bold">
+                ⚠️ ALERT ZONE
+                <br />
+                {zone.reportCount} reports
+              </div>
+            </div>
+          </div>
+        ))}
 
         {/* Report markers for demo */}
         <div className="absolute inset-0">

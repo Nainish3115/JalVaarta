@@ -18,7 +18,8 @@ import {
   Users,
   MessageSquare,
   Activity,
-  ArrowRight
+  ArrowRight,
+  X
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -372,7 +373,7 @@ const DisasterManagement = () => {
             <CardDescription>Reports awaiting your review and verification</CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3 max-h-80 overflow-y-auto">
+                <div className="space-y-3 max-h-80 overflow-y-auto">
               {pendingReports.length === 0 ? (
                 <div className="text-center py-8">
                   <CheckCircle className="h-8 w-8 text-muted-foreground mx-auto mb-2" />
@@ -395,8 +396,31 @@ const DisasterManagement = () => {
                             {report.location_name || `${report.latitude.toFixed(4)}, ${report.longitude.toFixed(4)}`}
                           </p>
                           <p className="text-sm mt-1 line-clamp-2">{report.description}</p>
+                          
+                          {/* Media preview */}
+                          {report.media_url && (
+                            <div className="mt-2">
+                              {report.media_url.includes('.mp4') || report.media_url.includes('.mov') ? (
+                                <video 
+                                  src={report.media_url} 
+                                  className="w-20 h-20 object-cover rounded border cursor-pointer"
+                                  onClick={() => setSelectedReport(report)}
+                                />
+                              ) : (
+                                <img 
+                                  src={report.media_url} 
+                                  alt="Report evidence" 
+                                  className="w-20 h-20 object-cover rounded border cursor-pointer"
+                                  onClick={() => setSelectedReport(report)}
+                                />
+                              )}
+                            </div>
+                          )}
                         </div>
-                        <div className="flex space-x-2 ml-4">
+                        <div className="flex flex-col space-y-2 ml-4">
+                          <Button size="sm" variant="outline" onClick={() => setSelectedReport(report)}>
+                            <Eye className="h-4 w-4" />
+                          </Button>
                           <Button size="sm" onClick={() => handleQuickVerify(report.id, 'verified')}>
                             <CheckCircle className="h-4 w-4" />
                           </Button>
@@ -430,6 +454,91 @@ const DisasterManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Detailed Report Modal */}
+      {selectedReport && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold capitalize">
+                  {selectedReport.hazard_type.replace('_', ' ')} Report
+                </h2>
+                <Button variant="ghost" size="sm" onClick={() => setSelectedReport(null)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              
+              <div className="space-y-4">
+                <div>
+                  <h3 className="font-medium mb-2">Location</h3>
+                  <p className="text-sm text-muted-foreground">
+                    {selectedReport.location_name || 'No location name provided'}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Coordinates: {selectedReport.latitude.toFixed(6)}, {selectedReport.longitude.toFixed(6)}
+                  </p>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Description</h3>
+                  <p className="text-sm">{selectedReport.description}</p>
+                </div>
+                
+                <div>
+                  <h3 className="font-medium mb-2">Reporter Information</h3>
+                  <p className="text-sm">Name: {selectedReport.profiles?.name || 'Anonymous'}</p>
+                  <p className="text-sm">Role: {selectedReport.profiles?.role || 'Unknown'}</p>
+                  <p className="text-sm">Reported: {new Date(selectedReport.created_at).toLocaleString()}</p>
+                </div>
+                
+                {selectedReport.media_url && (
+                  <div>
+                    <h3 className="font-medium mb-2">Evidence</h3>
+                    {selectedReport.media_url.includes('.mp4') || selectedReport.media_url.includes('.mov') ? (
+                      <video 
+                        src={selectedReport.media_url} 
+                        controls 
+                        className="w-full max-h-64 rounded border"
+                      />
+                    ) : (
+                      <img 
+                        src={selectedReport.media_url} 
+                        alt="Report evidence" 
+                        className="w-full max-h-64 object-contain rounded border bg-muted"
+                      />
+                    )}
+                  </div>
+                )}
+                
+                <div className="flex space-x-2 pt-4 border-t">
+                  <Button 
+                    className="flex-1" 
+                    onClick={() => {
+                      handleQuickVerify(selectedReport.id, 'verified');
+                      setSelectedReport(null);
+                    }}
+                  >
+                    <CheckCircle className="h-4 w-4 mr-2" />
+                    Verify Report
+                  </Button>
+                  <Button 
+                    variant="destructive" 
+                    className="flex-1"
+                    onClick={() => {
+                      handleQuickVerify(selectedReport.id, 'rejected');
+                      setSelectedReport(null);
+                    }}
+                  >
+                    <XCircle className="h-4 w-4 mr-2" />
+                    Reject Report
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Additional Information */}
       <Card>

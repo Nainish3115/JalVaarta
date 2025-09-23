@@ -49,7 +49,39 @@ const ReportHazard = () => {
     }
   };
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const extractExifLocation = (file: File): Promise<{ lat: number; lng: number } | null> => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const arrayBuffer = e.target?.result as ArrayBuffer;
+          const dataView = new DataView(arrayBuffer);
+          
+          // Simple EXIF GPS extraction (basic implementation)
+          // Note: This is a simplified version. For production, consider using a library like 'exif-js'
+          const exifMarker = 0xFFE1;
+          let offset = 2;
+          
+          while (offset < dataView.byteLength) {
+            const marker = dataView.getUint16(offset);
+            if (marker === exifMarker) {
+              // Found EXIF data, but for simplicity, we'll skip complex parsing
+              // In a real implementation, you'd parse GPS coordinates here
+              break;
+            }
+            offset += 2;
+          }
+          
+          resolve(null); // Return null for now, but structure is ready for GPS parsing
+        } catch (error) {
+          resolve(null);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (selectedFile) {
       if (selectedFile.size > 10 * 1024 * 1024) {
@@ -60,7 +92,20 @@ const ReportHazard = () => {
         });
         return;
       }
+      
       setFile(selectedFile);
+      
+      // Try to extract location from image if it's a photo
+      if (selectedFile.type.startsWith('image/')) {
+        const exifLocation = await extractExifLocation(selectedFile);
+        if (exifLocation) {
+          setLocation(exifLocation);
+          toast({
+            title: "Location Found",
+            description: "Location extracted from photo metadata.",
+          });
+        }
+      }
     }
   };
 
