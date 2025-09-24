@@ -23,13 +23,27 @@ const WeatherIntegration: React.FC = () => {
   const [weatherData, setWeatherData] = useState<Record<string, WeatherData>>({});
   const [loading, setLoading] = useState(true);
 
-  const coastalLocations = [
-    { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
-    { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
-    { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
-    { name: 'Kochi', lat: 9.9312, lng: 76.2673 },
-    { name: 'Visakhapatnam', lat: 17.6868, lng: 83.2185 }
-  ];
+ const coastalLocations = [
+  // West Coast (Arabian Sea)
+  { name: 'Mumbai', lat: 19.0760, lng: 72.8777 },
+  { name: 'Panaji', lat: 15.4909, lng: 73.8278 },
+  { name: 'Mangalore', lat: 12.9141, lng: 74.8560 },
+  { name: 'Kochi', lat: 9.9312, lng: 76.2673 },
+  { name: 'Trivandrum', lat: 8.5241, lng: 76.9366 },
+
+  // East Coast (Bay of Bengal)
+  { name: 'Chennai', lat: 13.0827, lng: 80.2707 },
+  { name: 'Puducherry', lat: 11.9139, lng: 79.8145 },
+  { name: 'Visakhapatnam', lat: 17.6868, lng: 83.2185 },
+  { name: 'Kakinada', lat: 16.9891, lng: 82.2475 },
+  { name: 'Kolkata', lat: 22.5726, lng: 88.3639 },
+  { name: 'Paradip', lat: 20.3167, lng: 86.6167 },
+
+  // Islands
+  { name: 'Port Blair (Andaman)', lat: 11.6234, lng: 92.7265 },
+  { name: 'Kavaratti (Lakshadweep)', lat: 10.5667, lng: 72.6420 }
+];
+
 
   useEffect(() => {
     fetchWeatherData();

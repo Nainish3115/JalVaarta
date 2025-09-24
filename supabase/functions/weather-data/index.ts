@@ -15,7 +15,7 @@ serve(async (req) => {
     const { latitude, longitude } = await req.json();
 
     // OpenWeatherMap API call (API key must be set in Supabase env vars)
-    const OPENWEATHER_API_KEY = Deno.env.get("OPENWEATHER_API_KEY");
+    const OPENWEATHER_API_KEY = Deno.env.get("VITE_OPENWEATHER_API_KEY");
 
     if (!OPENWEATHER_API_KEY) {
       throw new Error("OpenWeatherMap API key not configured");
