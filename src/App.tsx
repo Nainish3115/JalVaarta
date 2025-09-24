@@ -15,7 +15,8 @@ import AdminPanel from "./pages/AdminPanel";
 import DisasterManagement from "./pages/DisasterManagement";
 import Profile from "./pages/Profile";
 import Settings from "./pages/Settings";
-import NotFound from "./pages/NotFound"; // 404 page component
+import NotFound from "./pages/NotFound"; 
+import AIPredictions from "./pages/AIPredictions";
 
 const queryClient = new QueryClient();
 
@@ -60,6 +61,7 @@ const App = () => (
                 <Route path="admin" element={<AdminPanel />} />
                 <Route path="profile" element={<Profile />} />
                 <Route path="settings" element={<Settings />} />
+                <Route path="ai-predictions" element={<AIPredictions />} />
               </Route>
               <Route path="*" element={<NotFound />} />
             </Routes>

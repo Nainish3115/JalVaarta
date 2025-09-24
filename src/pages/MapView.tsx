@@ -6,6 +6,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { supabase } from '@/integrations/supabase/client';
 import { MapPin, Filter, Clock, User, CheckCircle, AlertTriangle } from 'lucide-react';
 import MapboxMap from '@/components/MapboxMap';
+import { aiPredictionService } from '@/services/aiPredictionService';
 
 interface Report {
   id: string;
@@ -32,6 +33,13 @@ const MapView = () => {
     status: 'all',
     time_range: 'all'
   });
+  const [predictionZones, setPredictionZones] = useState<Array<{
+    center: [number, number];
+    radius: number;
+    riskLevel: string;
+    riskScore: number;
+    predictions: any[];
+  }>>([]);
 
   const hazardTypes = [
     { value: 'all', label: 'All Types' },
@@ -77,23 +85,61 @@ const MapView = () => {
         .from('reports')
         .select('*')
         .order('created_at', { ascending: false });
-
+  
       if (reportsError) throw reportsError;
-
+  
       // Then get all profiles
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
         .select('user_id, name');
-
+  
       if (profilesError) throw profilesError;
-
+  
       // Manually join the data
       const reportsWithProfiles = (reportsData || []).map(report => ({
         ...report,
         profiles: profilesData?.find(profile => profile.user_id === report.user_id) || null
       }));
-
+  
       setReports(reportsWithProfiles);
+
+      // Try to fetch AI predictions (won't crash if table doesn't exist)
+      try {
+        const predictions = await aiPredictionService.getPredictions({ status: 'active' });
+        
+        // Calculate prediction zones
+        const zones = predictions.reduce((acc, prediction) => {
+          const existingZone = acc.find(zone => 
+            zone.center[0] === prediction.longitude && zone.center[1] === prediction.latitude
+          );
+          
+          if (existingZone) {
+            existingZone.predictions.push(prediction);
+            existingZone.riskScore = Math.max(existingZone.riskScore, prediction.risk_score);
+            existingZone.riskLevel = prediction.risk_level;
+          } else {
+            acc.push({
+              center: [prediction.longitude, prediction.latitude],
+              radius: 50000, // 50km radius
+              riskLevel: prediction.risk_level,
+              riskScore: prediction.risk_score,
+              predictions: [prediction]
+            });
+          }
+          return acc;
+        }, [] as Array<{
+          center: [number, number];
+          radius: number;
+          riskLevel: string;
+          riskScore: number;
+          predictions: any[];
+        }>);
+        
+        setPredictionZones(zones);
+      } catch (predictionError) {
+        console.warn("AI predictions not available yet:", predictionError);
+        setPredictionZones([]); // Set empty zones if predictions fail
+      }
     } catch (error) {
       console.error('Error fetching reports:', error);
     } finally {
@@ -259,6 +305,7 @@ const MapView = () => {
             <div className="h-96">
               <MapboxMap 
                 reports={filteredReports}
+                predictionZones={predictionZones}
                 selectedReport={selectedReport}
                 onReportSelect={setSelectedReport}
                 center={[77.2090, 28.6139]} // New Delhi coordinates for India

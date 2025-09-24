@@ -1,5 +1,6 @@
 import { useState, useEffect, createContext, useContext } from 'react';
 import { NavLink, useLocation } from 'react-router-dom';
+import { Brain } from 'lucide-react';
 import {
   Sidebar,
   SidebarContent,
@@ -29,6 +30,7 @@ const navigationItems = [
   { title: 'Social Media', url: '/social', icon: Database, roles: ['analyst', 'disaster_manager'] },
   { title: 'Disaster Center', url: '/disaster', icon: Shield, roles: ['disaster_manager', 'analyst'] },
   { title: 'Admin Panel', url: '/admin', icon: Shield, roles: ['analyst', 'disaster_manager'] },
+  { title: 'AI Predictions', url: '/ai-predictions', icon: Brain, roles: ['analyst', 'disaster_manager'] },
 ];
 
 export function AppSidebar() {
@@ -57,7 +59,7 @@ export function AppSidebar() {
               <Shield className="h-4 w-4 text-accent absolute -top-1 -right-1" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-sidebar-foreground">Ocean Guardian</h2>
+              <h2 className="text-lg font-bold text-sidebar-foreground">Jalvaarta</h2>
               <p className="text-xs text-sidebar-foreground/60 capitalize">
                 {profile?.role?.replace('_', ' ')} Portal
               </p>

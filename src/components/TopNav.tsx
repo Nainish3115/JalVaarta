@@ -11,9 +11,32 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { LogOut, User, Settings, Bell } from 'lucide-react';
+import { useEffect } from 'react';
+
+declare global {
+  interface Window {
+    googleTranslateElementInit: () => void;
+    google?: any;
+  }
+}
 
 export function TopNav() {
   const { profile, signOut } = useAuth();
+
+  useEffect(() => {
+    // Load Google Translate script
+    const script = document.createElement("script");
+    script.src = "//translate.google.com/translate_a/element.js?cb=googleTranslateElementInit";
+    document.body.appendChild(script);
+
+    window.googleTranslateElementInit = function () {
+      new window.google.translate.TranslateElement({
+        pageLanguage: 'en',
+        includedLanguages: 'hi,bn,ta,te,mr,ur,gu,kn,ml,pa,or,as',
+        layout: window.google.translate.TranslateElement.InlineLayout.SIMPLE
+      }, 'google_translate_element');
+    };
+  }, []);
 
   const handleSignOut = async () => {
     await signOut();
@@ -34,19 +57,60 @@ export function TopNav() {
         <SidebarTrigger className="h-8 w-8" />
         <div className="hidden md:block">
           <h1 className="text-lg font-semibold text-foreground">
-            Ocean Guardian Platform
+            JalVaarta
           </h1>
         </div>
       </div>
 
       <div className="flex items-center space-x-4">
-        {/* Notification Badge */}
-        <Button variant="ghost" size="sm" className="relative">
-          <Bell className="h-4 w-4" />
-          <span className="absolute -top-1 -right-1 h-3 w-3 bg-destructive rounded-full text-[10px] text-white flex items-center justify-center">
-            3
-          </span>
-        </Button>
+        {/* Google Translate Language Selector */}
+        <div
+          id="google_translate_element"
+          className="mr-2"
+          style={{
+            minWidth: 120,
+            maxWidth: 160,
+            fontSize: '0.95rem',
+            background: 'var(--card)',
+            borderRadius: '0.375rem',
+            border: '1px solid var(--border)',
+            color: 'var(--foreground)',
+            height: '32px',
+            display: 'flex',
+            alignItems: 'center',
+            overflow: 'hidden',
+            boxShadow: '0 1px 2px rgba(0,0,0,0.04)'
+          }}
+        />
+        <style>
+          {`
+            #google_translate_element .goog-te-gadget {
+              font-family: inherit !important;
+              font-size: 0.95rem !important;
+              color: var(--foreground) !important;
+              background: var(--card) !important;
+              margin: 0 !important;
+              padding: 0 !important;
+              border-radius: 0.375rem !important;
+              border: 1px solid var(--border) !important;
+            }
+            #google_translate_element .goog-te-combo {
+              background: var(--card) !important;
+              color: var(--foreground) !important;
+              border-radius: 0.375rem !important;
+              border: 1px solid var(--border) !important;
+              padding: 2px 8px !important;
+              font-size: 0.95rem !important;
+              margin: 0 !important;
+            }
+            #google_translate_element img {
+              display: none !important;
+            }
+            .goog-logo-link, .goog-te-banner-frame {
+              display: none !important;
+            }
+          `}
+        </style>
 
         {/* Theme Toggle */}
         <ThemeToggle />

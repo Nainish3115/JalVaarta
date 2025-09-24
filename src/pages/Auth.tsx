@@ -68,7 +68,7 @@ const Auth = () => {
               <Shield className="h-6 w-6 text-accent absolute -top-1 -right-1" />
             </div>
           </div>
-          <h1 className="text-3xl font-bold text-foreground mb-2">Ocean Guardian</h1>
+          <h1 className="text-3xl font-bold text-foreground mb-2">JalVaarta</h1>
           <p className="text-muted-foreground">
             Crowdsourced ocean hazard reporting and monitoring
           </p>

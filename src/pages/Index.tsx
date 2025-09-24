@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
+import { aiPredictionService } from '@/services/aiPredictionService';
 import { 
   Waves, 
   AlertTriangle, 
@@ -24,6 +25,8 @@ interface DashboardStats {
   verifiedReports: number;
   myReports: number;
   recentActivity: any[];
+  activeAlerts: number;
+  highRiskPredictions: number;
 }
 
 const Index = () => {
@@ -33,7 +36,9 @@ const Index = () => {
     pendingReports: 0,
     verifiedReports: 0,
     myReports: 0,
-    recentActivity: []
+    recentActivity: [],
+    activeAlerts: 0,
+    highRiskPredictions: 0
   });
   const [loading, setLoading] = useState(true);
 
@@ -47,14 +52,14 @@ const Index = () => {
       const { data: reports, error: reportsError } = await supabase
         .from('reports')
         .select('*');
-
+  
       if (reportsError) throw reportsError;
-
+  
       const totalReports = reports?.length || 0;
       const pendingReports = reports?.filter(r => r.status === 'pending').length || 0;
       const verifiedReports = reports?.filter(r => r.status === 'verified').length || 0;
       const myReports = reports?.filter(r => r.user_id === profile?.user_id).length || 0;
-
+  
       // Fetch recent activity
       const { data: recentActivity, error: activityError } = await supabase
         .from('reports')
@@ -64,15 +69,30 @@ const Index = () => {
         `)
         .order('created_at', { ascending: false })
         .limit(5);
-
       if (activityError) throw activityError;
+
+      // Try to fetch AI data (won't crash if tables don't exist)
+      let activeAlerts = 0;
+      let highRiskPredictions = 0;
+      
+      try {
+        const alerts = await aiPredictionService.getAlerts(true);
+        const predictions = await aiPredictionService.getPredictions({ status: 'active' });
+        activeAlerts = alerts.length;
+        highRiskPredictions = predictions.filter(p => ['high', 'critical'].includes(p.risk_level)).length;
+      } catch (aiError) {
+        console.warn("AI features not available yet:", aiError);
+        // Continue with default values (0 alerts, 0 predictions)
+      }
 
       setStats({
         totalReports,
         pendingReports,
         verifiedReports,
         myReports,
-        recentActivity: recentActivity || []
+        recentActivity: recentActivity || [],
+        activeAlerts,
+        highRiskPredictions
       });
     } catch (error) {
       console.error('Error fetching dashboard data:', error);
@@ -250,6 +270,15 @@ const Index = () => {
 
             {(profile?.role === 'analyst' || profile?.role === 'disaster_manager') && (
               <Button asChild variant="outline" className="w-full justify-start">
+                <Link to="/ai-predictions">
+                  <Shield className="h-4 w-4 mr-2" />
+                  AI Predictions
+                </Link>
+              </Button>
+            )}
+
+            {(profile?.role === 'analyst' || profile?.role === 'disaster_manager') && (
+              <Button asChild variant="outline" className="w-full justify-start">
                 <Link to="/admin">
                   <Shield className="h-4 w-4 mr-2" />
                   Admin Panel
@@ -302,12 +331,27 @@ const Index = () => {
         <CardContent className="p-6">
           <div className="flex items-center space-x-3">
             <AlertTriangle className="h-6 w-6 text-destructive" />
-            <div>
-              <h3 className="font-semibold text-destructive">Emergency Alert System</h3>
-              <p className="text-sm text-muted-foreground">
-                No active emergency alerts. System monitoring for critical ocean hazards.
+            <div className="flex-1">
+              <h3 className="font-semibold text-destructive">AI Emergency Alert System</h3>
+              <p className="text-sm text-muted-foreground mb-2">
+                {stats.activeAlerts > 0 
+                  ? `${stats.activeAlerts} active AI-generated alerts requiring attention`
+                  : 'No active emergency alerts. AI monitoring system active.'
+                }
               </p>
+              {stats.highRiskPredictions > 0 && (
+                <p className="text-sm text-orange-600">
+                  ⚠️ {stats.highRiskPredictions} high-risk predictions detected
+                </p>
+              )}
             </div>
+            {stats.activeAlerts > 0 && (
+              <Button asChild variant="outline" size="sm">
+                <Link to="/ai-predictions">
+                  View Alerts
+                </Link>
+              </Button>
+            )}
           </div>
         </CardContent>
       </Card>
