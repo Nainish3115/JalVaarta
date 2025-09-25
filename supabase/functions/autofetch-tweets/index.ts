@@ -24,7 +24,7 @@ async function twitterRecentSearch(query: string, max_results = 10, next_token: 
 
   const response = await fetch(url.toString(), {
     headers: {
-      "Authorization": `Bearer ${BEARER}`,
+      "Authorization": Bearer ${BEARER},
       "User-Agent": "SupabaseFunction/1.0",
     },
   });

@@ -1,399 +1,185 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Input } from '@/components/ui/input';
 import { Progress } from '@/components/ui/progress';
-import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
-import { useToast } from '@/hooks/use-toast';
 import { 
-  Brain, 
-  AlertTriangle, 
-  TrendingUp, 
-  MapPin, 
-  Clock,
-  Activity,
-  Zap,
-  CloudRain
+  AlertTriangle, Loader2, Wand2, MapPin, Cloud, Droplets, Wind, Gauge, Search 
 } from 'lucide-react';
-import RiskAssessmentChart from '@/components/RiskAssessmentChart';
-import PredictionAlerts from '@/components/PredictionAlerts';
-import WeatherIntegration from '@/components/WeatherIntegration';
 
-interface Prediction {
-  id: string;
-  hazard_type: string;
-  risk_level: string;
-  risk_score: number;
-  latitude: number;
-  longitude: number;
+// Interfaces for the data structures
+interface Hazard {
+  type: string;
+  likelihood_percentage: number;
+  reasoning: string;
+}
+interface ForecastData {
+  forecast_summary: string;
+  hazards: Hazard[];
+}
+interface WeatherData {
+  temperature: number;
+  humidity: number;
+  wind_speed: number;
+  pressure: number;
+  condition: string;
   location_name: string;
-  prediction_timeframe: string;
-  confidence_score: number;
-  factors: any;
-  status: string;
-  created_at: string;
 }
 
-interface Alert {
-  id: string;
-  prediction_id: string;
-  alert_level: string;
-  message: string;
-  affected_population: number;
-  recommended_actions: string[];
-  is_active: boolean;
-  created_at: string;
-}
+const OceanForecast = () => {
+  const [forecast, setForecast] = useState<ForecastData | null>(null);
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [search, setSearch] = useState("");
 
-const AIPredictions = () => {
-  const { profile } = useAuth();
-  const { toast } = useToast();
-  const [predictions, setPredictions] = useState<Prediction[]>([]);
-  const [alerts, setAlerts] = useState<Alert[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [selectedTimeframe, setSelectedTimeframe] = useState('24h');
+  // This is the main function that orchestrates the data fetching
+  const getPredictionForCoords = async (latitude: number, longitude: number) => {
+    setIsLoading(true);
+    setError(null);
+    setForecast(null);
+    setWeather(null);
 
-  useEffect(() => {
-    fetchPredictions();
-    fetchAlerts();
-    
-    // Set up realtime subscriptions
-    const predictionsChannel = supabase
-      .channel('predictions-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'predictions' }, 
-        () => fetchPredictions())
-      .subscribe();
-
-    const alertsChannel = supabase
-      .channel('alerts-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'prediction_alerts' }, 
-        () => fetchAlerts())
-      .subscribe();
-
-    return () => {
-      predictionsChannel.unsubscribe();
-      alertsChannel.unsubscribe();
-    };
-  }, []);
-
-  const fetchPredictions = async () => {
     try {
-      const { data, error } = await supabase
-        .from('predictions')
-        .select('*')
-        .eq('status', 'active')
-        .order('created_at', { ascending: false });
+      // Step 1: Fetch current weather data from your 'weather-data' function
+      const { data: weatherData, error: weatherError } = await supabase.functions.invoke<WeatherData>('weather-data', {
+        body: { latitude, longitude },
+      });
+      if (weatherError) throw weatherError;
+      setWeather(weatherData);
 
-      if (error) {
-        // Return empty array if table doesn't exist yet
-        if (error.message.includes("relation \"public.predictions\" does not exist")) {
-          console.warn("Predictions table not found - migrations may not be applied yet");
-          setPredictions([]);
-          return;
-        }
-        throw new Error(`Failed to fetch predictions: ${error.message}`);
-      }
-      setPredictions(data || []);
-    } catch (error) {
-      console.warn("Predictions table not available:", error);
-      setPredictions([]);
-    }
-  };
+      // Step 2: Send the fetched weather data to the 'gemini-prediction' function
+      const { data: predictionData, error: predictionError } = await supabase.functions.invoke<ForecastData>('gemini-prediction', {
+        body: { weatherData }, // Pass the weather data as input
+      });
+      if (predictionError) throw predictionError;
+      setForecast(predictionData);
 
-  const fetchAlerts = async () => {
-    try {
-      const { data, error } = await supabase
-        .from('prediction_alerts')
-        .select('*')
-        .eq('is_active', true)
-        .order('created_at', { ascending: false });
-
-      if (error) {
-        // Return empty array if table doesn't exist yet
-        if (error.message.includes("relation \"public.prediction_alerts\" does not exist")) {
-          console.warn("Prediction alerts table not found - migrations may not be applied yet");
-          setAlerts([]);
-          return;
-        }
-        throw new Error(`Failed to fetch alerts: ${error.message}`);
-      }
-      setAlerts(data || []);
-    } catch (error) {
-      console.warn("Prediction alerts table not available:", error);
-      setAlerts([]);
+    } catch (err: any) {
+      setError(err.message || "An unknown error occurred.");
+      console.error("Fetch error:", err);
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const getRiskBadge = (level: string) => {
-    const variants = {
-      low: "bg-green-100 text-green-800",
-      medium: "bg-yellow-100 text-yellow-800", 
-      high: "bg-orange-100 text-orange-800",
-      critical: "bg-red-100 text-red-800"
-    };
-    
-    return (
-      <Badge className={variants[level as keyof typeof variants] || "bg-gray-100 text-gray-800"}>
-        {level.toUpperCase()}
-      </Badge>
-    );
-  };
-
-  const generatePrediction = async () => {
+  // --- UI HANDLERS ---
+  const handleUseMyLocation = async () => {
     try {
-      const coastalLocations = [
-        { name: "Mumbai", lat: 19.076, lng: 72.8777 },
-        { name: "Chennai", lat: 13.0827, lng: 80.2707 },
-        { name: "Kolkata", lat: 22.5726, lng: 88.3639 },
-        { name: "Kochi", lat: 9.9312, lng: 76.2673 },
-        { name: "Visakhapatnam", lat: 17.6868, lng: 83.2185 },
-      ];
-
-      for (const location of coastalLocations) {
-        const { data, error } = await supabase.functions.invoke(
-          "ai-predictions",
-          {
-            body: {
-              latitude: location.lat,
-              longitude: location.lng,
-              location_name: location.name,
-            },
-          }
-        );
-
-        if (error) throw error;
-
-        if (data?.predictions?.length) {
-          try {
-            const { data: insertedPredictions, error: insertError } =
-              await supabase.from("predictions").insert(data.predictions).select();
-
-            if (insertError) {
-              if (insertError.message.includes("relation \"public.predictions\" does not exist")) {
-                throw new Error("AI predictions feature not available - database tables not created yet. Please run: supabase db push");
-              }
-              throw insertError;
-            }
-
-            if (data.alerts?.length && insertedPredictions?.length) {
-              const predictionId = insertedPredictions[0].id;
-              const alertsToInsert = data.alerts.map((a: any) => ({
-                ...a,
-                prediction_id: predictionId,
-              }));
-
-              const { error: alertError } = await supabase
-                .from("prediction_alerts")
-                .insert(alertsToInsert);
-                
-              if (alertError) {
-                console.warn("Failed to save alerts:", alertError);
-                // Don't throw here - predictions were saved successfully
-              }
-            }
-          } catch (dbError: any) {
-            if (dbError.message.includes("relation \"public.predictions\" does not exist")) {
-              throw new Error("AI predictions feature not available - database tables not created yet. Please run: supabase db push");
-            }
-            throw dbError;
-          }
-        }
-      }
-
-      toast({
-        title: "Predictions Generated",
-        description:
-          "AI predictions have been updated for coastal regions",
-      });
-
-      fetchPredictions();
-      fetchAlerts();
-    } catch (error: any) {
-      console.error("Error generating predictions:", error);
-      
-      let errorMessage = "Failed to generate predictions";
-      if (error.message.includes("database tables not created yet")) {
-        errorMessage = error.message;
-      } else if (error.message.includes("relation") && error.message.includes("does not exist")) {
-        errorMessage = "AI features not available - database tables not created yet. Please run: supabase db push";
-      }
-      
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: errorMessage,
-      });
+      const position = await new Promise<GeolocationPosition>((resolve, reject) =>
+        navigator.geolocation.getCurrentPosition(resolve, reject, { timeout: 5000 })
+      );
+      getPredictionForCoords(position.coords.latitude, position.coords.longitude);
+    } catch {
+      setError("Unable to access your location. Try searching by city name instead.");
     }
   };
 
-  const activeAlerts = alerts.filter((a) => a.is_active);
-  const highRiskPredictions = predictions.filter((p) =>
-    ["high", "critical"].includes(p.risk_level)
-  );
-
-  if (loading) {
-    return (
-      <div className="container mx-auto py-6 px-4">
-        <div className="flex items-center justify-center h-96">
-          <div className="text-center">
-            <Brain className="h-8 w-8 animate-pulse text-primary mx-auto mb-2" />
-            <p>Loading AI predictions...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
+  const handleCitySearch = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!search.trim()) return;
+    setIsLoading(true);
+    try {
+      // Use OpenWeatherMap on the client-side just to get coordinates for a city name
+      const res = await fetch(
+        `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(search)}&appid=${
+          import.meta.env.VITE_OPENWEATHER_API_KEY
+        }`
+      );
+      if (!res.ok) throw new Error("City not found. Please check the spelling.");
+      const json = await res.json();
+      getPredictionForCoords(json.coord.lat, json.coord.lon);
+    } catch (err: any) {
+      setError(err.message);
+      setIsLoading(false);
+    }
+  };
+  
   return (
-    <div className="container mx-auto py-6 px-4">
-      {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center space-x-3 mb-4">
-          <div className="relative">
-            <Brain className="h-10 w-10 text-primary" />
-            <Zap className="h-5 w-5 text-accent absolute -top-1 -right-1" />
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-foreground">AI Hazard Predictions</h1>
-            <p className="text-muted-foreground">
-              Machine learning-powered risk assessment and early warning system
-            </p>
-          </div>
-        </div>
-
-        {/* Stats Overview */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Activity className="h-8 w-8 text-blue-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Active Predictions</p>
-                  <p className="text-2xl font-bold">{predictions.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <AlertTriangle className="h-8 w-8 text-orange-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">High Risk Areas</p>
-                  <p className="text-2xl font-bold">{highRiskPredictions.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <Zap className="h-8 w-8 text-red-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Active Alerts</p>
-                  <p className="text-2xl font-bold">{activeAlerts.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <CloudRain className="h-8 w-8 text-cyan-500" />
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-muted-foreground">Weather Monitored</p>
-                  <p className="text-2xl font-bold">5</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Generate Predictions Button */}
-        {(profile?.role === 'analyst' || profile?.role === 'disaster_manager') && (
-          <Button onClick={generatePrediction} className="mb-6">
-            <Brain className="h-4 w-4 mr-2" />
-            Generate New Predictions
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center">
+          <Wand2 className="h-5 w-5 mr-2 text-primary" />
+          AI-Powered Ocean Hazard Forecast
+        </CardTitle>
+        <CardDescription>
+          Get AI hazard predictions for any coastal city or your current location.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {/* --- Input Section --- */}
+        <div className="p-4 border rounded-lg bg-muted/50 mb-6">
+          <form onSubmit={handleCitySearch} className="flex gap-2 mb-2">
+            <Input
+              placeholder="Search by city name (e.g., Mumbai, Tokyo)"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+            <Button type="submit" disabled={isLoading}>
+              <Search className="h-4 w-4" />
+            </Button>
+          </form>
+          <div className="text-center text-sm text-muted-foreground my-2">OR</div>
+          <Button onClick={handleUseMyLocation} disabled={isLoading} className="w-full">
+            <MapPin className="mr-2 h-4 w-4" />
+            Use My Current Location
           </Button>
-        )}
-      </div>
+        </div>
 
-      {/* Main Content */}
-      <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="predictions">Predictions</TabsTrigger>
-          <TabsTrigger value="alerts">Alerts</TabsTrigger>
-          <TabsTrigger value="weather">Weather</TabsTrigger>
-        </TabsList>
-
-        <TabsContent value="overview" className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <RiskAssessmentChart predictions={predictions} />
-            <PredictionAlerts alerts={alerts} />
+        {/* --- Display Section --- */}
+        {isLoading && (
+          <div className="text-center py-8">
+            <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto mb-2" />
+            <p className="text-muted-foreground">Fetching weather and generating AI forecast...</p>
           </div>
-        </TabsContent>
+        )}
+        {error && (
+          <div className="text-center py-8 text-destructive">
+            <AlertTriangle className="h-8 w-8 mx-auto mb-2" />
+            <p>{error}</p>
+          </div>
+        )}
+        
+        {weather && (
+          <div className="p-4 bg-gray-800 rounded-lg mb-6 text-gray-100">
+            <h3 className="font-semibold text-lg mb-3 flex items-center">
+              <Cloud className="h-5 w-5 mr-2 text-blue-400" />
+              Current Weather for {weather.location_name || 'your location'}
+            </h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+              <div className="flex items-center gap-2" title="Temperature"><Gauge className="h-4 w-4" /><span>{weather.temperature}°C</span></div>
+              <div className="flex items-center gap-2" title="Humidity"><Droplets className="h-4 w-4 text-blue-400" /><span>{weather.humidity}%</span></div>
+              <div className="flex items-center gap-2" title="Wind Speed"><Wind className="h-4 w-4" /><span>{weather.wind_speed} m/s</span></div>
+              <div className="flex items-center gap-2" title="Pressure"><Gauge className="h-4 w-4" /><span>{weather.pressure} hPa</span></div>
+            </div>
+          </div>
+        )}
 
-        <TabsContent value="predictions" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Current Risk Predictions</CardTitle>
-              <CardDescription>
-                AI-generated risk assessments for coastal regions
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {predictions.map((prediction) => (
-                  <div key={prediction.id} className="flex items-center justify-between p-4 border rounded-lg">
-                    <div className="flex items-center space-x-4">
-                      <div className="flex flex-col">
-                        <div className="flex items-center space-x-2">
-                          <MapPin className="h-4 w-4 text-muted-foreground" />
-                          <span className="font-medium">{prediction.location_name}</span>
-                          {getRiskBadge(prediction.risk_level)}
-                        </div>
-                        <div className="flex items-center space-x-4 mt-1">
-                          <span className="text-sm text-muted-foreground capitalize">
-                            {prediction.hazard_type.replace('_', ' ')}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {prediction.prediction_timeframe}
-                          </span>
-                          <span className="text-sm text-muted-foreground">
-                            {prediction.confidence_score.toFixed(1)}% confidence
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-2xl font-bold">{prediction.risk_score}%</div>
-                      <Progress value={prediction.risk_score} className="w-20" />
-                    </div>
+        {forecast && (
+          <div>
+            <div className="p-4 bg-muted rounded-lg mb-6">
+              <h3 className="font-semibold text-lg mb-1">AI Forecast Summary</h3>
+              <p className="text-muted-foreground">{forecast.forecast_summary}</p>
+            </div>
+            <div className="space-y-4">
+              <h3 className="font-semibold text-lg">Hazard Likelihood (48 Hours)</h3>
+              {forecast.hazards.map((hazard) => (
+                <div key={hazard.type} className="p-4 border rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <h4 className="font-medium">{hazard.type}</h4>
+                    <span className="font-bold text-lg">{hazard.likelihood_percentage}%</span>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="alerts" className="space-y-6">
-          <PredictionAlerts alerts={alerts} detailed={true} />
-        </TabsContent>
-
-        <TabsContent value="weather" className="space-y-6">
-          <WeatherIntegration />
-        </TabsContent>
-      </Tabs>
-    </div>
+                  <Progress value={hazard.likelihood_percentage} />
+                  <p className="text-sm text-muted-foreground mt-2">{hazard.reasoning}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
-export default AIPredictions;
+export default OceanForecast;
